@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Montagu+Slab:opsz,wght@16..144,100..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap');
+
+@font-face {
+  font-family: 'DancingScript';
+  src: url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700');
+}
+
+@font-face {
+  font-family: 'MontageSlab';
+  src: url('https://fonts.googleapis.com/css2?family=Montagu+Slab:opsz,wght@16..144,100..700');
+}
+
+@import "tailwindcss";
+
+@layer utilities {
+  .font-script {
+    font-family: 'Dancing Script', cursive;
+  }
+  
+  .font-slab {
+    font-family: 'Montagu Slab', serif;
+  }
+}

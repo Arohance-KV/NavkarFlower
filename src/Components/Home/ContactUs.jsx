@@ -5,7 +5,7 @@ export default function ContactUs() {
     <section className="w-full bg-[#EFE6D4] py-20 px-4 md:px-10">
       {/* Heading Section */}
       <div className="relative text-center mb-14 overflow-hidden">
-        <h2 className="relative z-10 text-4xl md:text-5xl font-script text-amber-900 mb-4">
+        <h2 className="relative z-10 text-4xl md:text-5xl font-script font-bold text-amber-900 mb-4">
           Contact Us
         </h2>
 

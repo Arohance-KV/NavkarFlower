@@ -20,6 +20,14 @@ const About = () => {
   return (
     <section className="relative min-h-screen bg-[#EFE6D4] overflow-hidden py-20">
 
+      {/* ====== ADDED HEADING ====== */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 text-center z-20">
+        <h1 className="text-5xl font-script font-bold text-amber-900">
+          About Us
+        </h1>
+      </div>
+      {/* ====== END HEADING ====== */}
+
       {/* CENTER BACKGROUND IMAGE */}
       <div className="relative mx-auto max-w-4xl rounded-2xl overflow-hidden">
         <div className="border-2 border-amber-800 p-2 rounded-4xl [corner-shape:scoop]">

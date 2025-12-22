@@ -1,35 +1,47 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
 import Navbar from "./Components/Navbar";
-import Login from "./Pages/Auth/Login.jsx"
-import SignUp from "./Pages/Auth/SignUp.jsx"
-import HomePage from "./Pages/HomePage.jsx";
 import Footer from "./Components/Footer";
-import ProductPage from "./Pages/ProductPage.jsx";
-import NotFoundPage from "./Pages/NotFoundPage.jsx"
+
+import HomePage from "./Pages/HomePage";
+import ProductPage from "./Pages/ProductPage";
+import ContactUs from "./Pages/ContactUsPage";
+import ProfilePage from "./Pages/ProfilePage";
+import NotFoundPage from "./Pages/NotFoundPage";
+
+/* Layout WITH Navbar & Footer */
+const MainLayout = () => (
+  <div className="min-h-screen flex flex-col bg-[#E7E0CE]">
+    <Navbar />
+    <main className="flex-1">
+      <Routes>
+        <Route index element={<HomePage />} />
+        <Route path="product" element={<ProductPage />} />
+        <Route path="contact" element={<ContactUs />} />
+        <Route path="profile" element={<ProfilePage />} />
+      </Routes>
+    </main>
+    <Footer />
+  </div>
+);
+
+/* Layout WITHOUT Navbar & Footer */
+const NoLayout = () => <NotFoundPage />;
 
 function App() {
   return (
     <Router>
-      {/* Universal App Wrapper */}
-      <div className="bg-[#E7E0CE] h-screen">
-        <Navbar />
+      <Routes>
+        {/* Valid routes */}
+        <Route path="/" element={<MainLayout />} />
+        <Route path="/product" element={<MainLayout />} />
+        <Route path="/contact" element={<MainLayout />} />
+        <Route path="/profile" element={<MainLayout />} />
 
-        {/* Universal main layout */}
-        <main>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/product" element={<ProductPage/>} />
-            <Route path="/login" element={<Login/>} />
-            <Route path="/signup" element={<SignUp/>} />
-            <Route path="*" element={<NotFoundPage/>} />
-            {/* other routes */}
-          </Routes>
-        </main>
-
-        {/* Footer can stay here */}
-        <Footer />
-      </div>
+        {/* Catch ALL invalid routes */}
+        <Route path="*" element={<NoLayout />} />
+      </Routes>
     </Router>
   );
 }

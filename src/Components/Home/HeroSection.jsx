@@ -6,7 +6,7 @@ export default function HeroSection() {
 
       {/* BACKGROUND IMAGE */}
       <div
-        className="absolute inset-0 bg-center bg-cover"
+        className="absolute inset-0 bg-center bg-contain z-10"
         style={{ backgroundImage: "url('/assets/HeroImg.png')" }}
       />
 
@@ -33,7 +33,7 @@ export default function HeroSection() {
           ">
 
           {/* TEXT */}
-          <h1 className="font-script text-3xl leading-relaxed text-[#8B3A4A] mb-8">
+          <h1 className="font-script text-4xl leading-relaxed text-[#8B3A4A] mb-8">
             Upgrade your <br />
             décor with <br />
             premium <br />

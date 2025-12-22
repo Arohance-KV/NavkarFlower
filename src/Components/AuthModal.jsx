@@ -33,16 +33,16 @@ const AuthModal = ({ isOpen, onClose }) => {
       {/* Modal Card Wrapper */}
       <div
         className="relative z-10 w-full max-w-lg"
-        onClick={(e) => e.stopPropagation()} // 👈 prevent overlay click
+        onClick={(e) => e.stopPropagation()}
       >
         {view === "login" ? (
           <Login
-            onClose={onClose}                 // ✅ PASS CLOSE
+            onClose={onClose}               
             switchToSignup={() => setView("signup")}
           />
         ) : (
           <SignUp
-            onClose={onClose}                 // ✅ PASS CLOSE
+            onClose={onClose}                 
             switchToLogin={() => setView("login")}
           />
         )}

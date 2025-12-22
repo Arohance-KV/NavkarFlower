@@ -14,6 +14,7 @@ import NotFoundPage from "./Pages/NotFoundPage";
 const MainLayout = () => (
   <div className="min-h-screen flex flex-col bg-[#E7E0CE]">
     <Navbar />
+
     <main className="flex-1">
       <Routes>
         <Route index element={<HomePage />} />
@@ -22,25 +23,20 @@ const MainLayout = () => (
         <Route path="profile" element={<ProfilePage />} />
       </Routes>
     </main>
+
     <Footer />
   </div>
 );
-
-/* Layout WITHOUT Navbar & Footer */
-const NoLayout = () => <NotFoundPage />;
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Valid routes */}
-        <Route path="/" element={<MainLayout />} />
-        <Route path="/product" element={<MainLayout />} />
-        <Route path="/contact" element={<MainLayout />} />
-        <Route path="/profile" element={<MainLayout />} />
+        {/* ALL valid pages */}
+        <Route path="/*" element={<MainLayout />} />
 
-        {/* Catch ALL invalid routes */}
-        <Route path="*" element={<NoLayout />} />
+        {/* 404 page (NO Navbar & Footer) */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>
   );

@@ -3,9 +3,9 @@ import { MessageCircle, Instagram, Facebook } from "lucide-react";
 
 export default function Footer() {
   const polaroidImages = [
-    { id: 1, image: "./assets/kids.png", alt: "Happy customer 1" },
-    { id: 2, image: "./assets/kids.png", alt: "Happy customer 2" },
-    { id: 3, image: "./assets/kids.png", alt: "Happy customer 3" },
+    { id: 1, image: "/assets/kids.png", alt: "Happy customer 1" },
+    { id: 2, image: "/assets/kids.png", alt: "Happy customer 2" },
+    { id: 3, image: "/assets/kids.png", alt: "Happy customer 3" },
   ];
 
   return (
@@ -21,7 +21,7 @@ export default function Footer() {
         {/* Decorative Branch */}
         <div className="flex justify-center">
           <img
-            src="./assets/flower.png"
+            src="/assets/flower.png"
             alt="Branch"
             className="w-30 h-30 object-fill"
           />
@@ -39,7 +39,7 @@ export default function Footer() {
       <div
         className="w-full py-10 relative min-h-96"
         style={{
-          backgroundImage: "url('./assets/FooterBg.png')",
+          backgroundImage: "url('/assets/FooterBg.png')",
           backgroundSize: "100% auto",
           backgroundPosition: "top center",
           backgroundRepeat: "no-repeat",

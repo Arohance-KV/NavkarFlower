@@ -257,12 +257,13 @@ const ProfilePage = () => {
 ------------------------------ */
 const InfoRow = ({ icon: Icon, label, value }) => (
   <div className="flex gap-4 items-start">
-    <Icon className="text-[#b8926d]" />
+    {Icon && <Icon className="text-[#b8926d]" />}
     <div>
       <p className="text-xs uppercase text-[#a67855]">{label}</p>
       <p>{value || "Not provided"}</p>
     </div>
   </div>
 );
+
 
 export default ProfilePage;

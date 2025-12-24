@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function NewCollection() {
+  const navigate = useNavigate();
+
   const smallImages = [
     "./assets/Flower1.png",
     "./assets/Flower2.png",
@@ -17,6 +20,7 @@ export default function NewCollection() {
           <h2 className="text-5xl md:text-6xl font-script text-amber-900 mb-3">
             New Collection
           </h2>
+
           <p className="text-lg font-slab text-amber-900 mb-3">
             Your space deserves beauty that endures
           </p>
@@ -43,9 +47,14 @@ export default function NewCollection() {
               ))}
             </div>
           </div>
-          <button className="border border-amber-900 text-amber-900 font-slab mt-10 px-10 py-3 hover:bg-amber-900 hover:text-white transition">
-          Shop Now
-        </button>
+
+          {/* SHOP NOW BUTTON */}
+          <button
+            onClick={() => navigate("/product")}
+            className="border border-amber-900 text-amber-900 font-slab rounded-xl mt-10 px-10 py-3 hover:bg-amber-900 hover:text-white transition"
+          >
+            Shop Now
+          </button>
         </div>
       </div>
     </section>
@@ -61,17 +70,19 @@ function ImageFrame({ img, large = false }) {
         large ? "" : ""
       }`}
     >
-      <div
-        className={`overflow-hidden ${
-          large ? "" : ""
-        }`}
-      >
-        <img src={img} alt="Product" className="w-full h-full object-cover" />
+      <div className={`overflow-hidden ${large ? "" : ""}`}>
+        <img
+          src={img}
+          alt="Product"
+          className="w-full h-full object-cover"
+        />
       </div>
 
-      {/* Optional text like screenshot */}
+      {/* Optional text */}
       <div className="mt-2 text-left">
-        <p className="text-xs font-semibold font-slab text-green-900">Pink Flower</p>
+        <p className="text-xs font-semibold font-slab text-green-900">
+          Pink Flower
+        </p>
         <p className="text-xs text-green-900">
           Rs.399/- <span className="line-through ml-1">Rs.899/-</span>
         </p>

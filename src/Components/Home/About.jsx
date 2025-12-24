@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 /* ---------------- CONSTANT DATA ---------------- */
 
@@ -17,6 +18,8 @@ const kidsCards = Array(4).fill({
 /* ---------------- COMPONENT ---------------- */
 
 const About = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen bg-[#EFE6D4] overflow-hidden py-20">
 
@@ -104,9 +107,12 @@ const About = () => {
             <p className="text-xl font-script text-[#7A3E3E]/80 mb-4">
               Navkar flowers perfected for every moment.
             </p>
-            <button className="border border-amber-900 text-amber-900 px-4 py-2 font-slab text-sm hover:bg-amber-900 hover:text-white transition">
-              Shop Now
-            </button>
+            <button
+            onClick={() => navigate("/product")}
+            className="border border-amber-900 text-amber-900 font-slab rounded-xl mt-4 px-10 py-3 hover:bg-amber-900 hover:text-white transition"
+          >
+            Shop Now
+          </button>
           </div>
 
           <div className="bg-[#FFFDF9] border-2 border-amber-800 rounded-2xl [corner-shape:scoop] overflow-hidden">

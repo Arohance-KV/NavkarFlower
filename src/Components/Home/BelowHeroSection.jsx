@@ -1,4 +1,6 @@
+import { useNavigate } from "react-router-dom";
 function BelowHeroSection() {
+  const navigate = useNavigate();
   return (
     <section>
     <div className="bg-white max-w-5xl mx-auto p-4 flex justify-center items-center ">
@@ -11,7 +13,7 @@ function BelowHeroSection() {
           <img
             src="/assets/Lleaf.png"
             alt="leaf"
-            className="w-20 mb-6 opacity-80"
+            className="w-30 mb-6 opacity-80"
           />
 
           {/* Text */}
@@ -25,11 +27,10 @@ function BelowHeroSection() {
 
           {/* Button */}
           <button
-            className="bg-amber-700 text-white text-sm tracking-widest
-                             px-8 py-4 rounded shadow-sm font-slab
-                             hover:bg-amber-900 transition"
+            onClick={() => navigate("/product")}
+            className="border border-amber-900 text-amber-900 font-slab mt-10 px-10 py-3 rounded-xl hover:bg-amber-900 hover:text-white transition "
           >
-            SHOP NOW
+            Shop Now
           </button>
         </div>
 

@@ -1,293 +1,458 @@
-// ProductPage.jsx
-import { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchAllProducts, fetchProductsByCategory, searchProducts } from "../Redux/productSlice";
+// src/Pages/ProductPage.jsx
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux"; // Added useDispatch
+import { FaHeart, FaRegHeart, FaSearch } from "react-icons/fa";
+import { FiLoader } from "react-icons/fi";
 import Toast from "../Components/Toast";
 
+// ==========================
+// Redux Actions
+// ==========================
+import { setCartCount } from "../Redux/cartSlice"; // Added
+
+// ==========================
+// RTK Query – Products
+// ==========================
+import {
+  useGetAllProductsQuery,
+  useSearchProductsQuery,
+  useGetProductsByCategoryQuery,
+} from "../Services/productApi";
+
+// ==========================
+// RTK Query – Categories
+// ==========================
+import { useGetAllCategoriesQuery } from "../Services/categoryApi";
+
+// ==========================
+// RTK Query – Cart (USER + GUEST)
+// ==========================
+import { useAddToCartMutation } from "../Services/cartApi";
+import { useAddGuestCartItemMutation } from "../Services/guestCartApi";
+
+// ==========================
+// RTK Query – Wishlist
+// ==========================
+import {
+  useGetWishlistQuery,
+  useToggleWishlistMutation,
+} from "../Services/wishlistApi";
+
+// ==========================
+// Utils
+// ==========================
+import { getGuestSessionId } from "../utils/session";
+
 const ProductPage = () => {
-  const dispatch = useDispatch();
-  
-  // Redux selectors
-  const { products, loading, error } = useSelector(state => state.product);
-  
-  // Local state
-  const [wishlist, setWishlist] = useState([]);
-  const [cart, setCart] = useState([]);
+  // ==========================
+  // REDUX
+  // ==========================
+  const dispatch = useDispatch(); // Added
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const cartCount = useSelector((state) => state.cart.itemCount); // To use in optimistic update
+
+  // ==========================
+  // LOCAL UI STATE
+  // ==========================
   const [notification, setNotification] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("All Flowers");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("best-selling");
 
-  // Fetch products based on search, category, or all, with pagination
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      dispatch(searchProducts({ query: searchQuery.trim(), page: 1, limit: 9 }));
-    } else if (selectedCategory !== "All Flowers") {
-      dispatch(fetchProductsByCategory({ category: selectedCategory, page: 1, limit: 9 }));
-    } else {
-      dispatch(fetchAllProducts({ page: 1, limit: 9 }));
+  const isSearching = searchQuery.trim().length > 0;
+  const isCategorySelected = selectedCategory !== "All Flowers";
+
+  // ==========================
+  // RTK QUERY – PRODUCTS
+  // ==========================
+  const { data: allProductsData, isLoading: loadingAll } =
+    useGetAllProductsQuery(undefined, {
+      skip: isSearching || isCategorySelected,
+    });
+
+  const { data: searchData, isLoading: loadingSearch } = useSearchProductsQuery(
+    { query: searchQuery },
+    { skip: !isSearching }
+  );
+
+  const { data: categoryData, isLoading: loadingCategory } =
+    useGetProductsByCategoryQuery(
+      { category: selectedCategory },
+      { skip: !isCategorySelected || isSearching }
+    );
+
+  // Normalize data to ensure it's an array
+  const getProductArray = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    return data.products || data.data || [];
+  };
+
+  const rawProducts = getProductArray(
+    searchData || categoryData || allProductsData
+  );
+
+  // Apply sorting client-side
+  let filteredProducts = [...rawProducts];
+
+  if (sortBy === "price-low") {
+    filteredProducts.sort((a, b) => a.price - b.price);
+  } else if (sortBy === "price-high") {
+    filteredProducts.sort((a, b) => b.price - a.price);
+  }
+  // For "best-selling", no additional sorting (assume server-side or default)
+
+  const itemsPerPage = 9;
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const loading = loadingAll || loadingSearch || loadingCategory;
+
+  // ==========================
+  // RTK QUERY – CATEGORIES
+  // ==========================
+  const { data: categoriesData } = useGetAllCategoriesQuery();
+
+  const categories = [
+    { name: "All Flowers" },
+    ...(Array.isArray(categoriesData)
+      ? categoriesData.map((cat) => ({ name: cat.name }))
+      : []),
+  ];
+
+  // ==========================
+  // RTK QUERY – WISHLIST
+  // ==========================
+  const { data: wishlistData } = useGetWishlistQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  const [toggleWishlist] = useToggleWishlistMutation();
+
+  // ==========================
+  // DERIVE WISHLIST IDS
+  // ==========================
+  const wishlistIds = useMemo(() => {
+    if (wishlistData?.items) {
+      return wishlistData.items.map((item) => item.product._id);
     }
-  }, [dispatch, selectedCategory, searchQuery]);
+    return [];
+  }, [wishlistData]);
 
-  // Reset pagination when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategory, searchQuery]);
+  // ==========================
+  // RTK QUERY – CART MUTATIONS
+  // ==========================
+  const [addToCart] = useAddToCartMutation();
+  const [addGuestCartItem] = useAddGuestCartItemMutation();
+  const sessionId = getGuestSessionId();
 
-  const showNotification = (message, type = 'success') => {
+  // ==========================
+  // UI HELPERS
+  // ==========================
+  const showNotification = (message, type = "success") => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const toggleWishlist = (productId) => {
-    const wasInWishlist = wishlist.includes(productId);
-    setWishlist(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
-    showNotification(wasInWishlist ? 'Removed from wishlist' : 'Added to wishlist');
+  const isInWishlist = (productId) => wishlistIds.includes(productId);
+
+  const handleFilter = () => {
+    setCurrentPage(1);
+    // Additional filter logic can be added here if needed
   };
 
-  const isInWishlist = (productId) => wishlist.includes(productId);
+  // ==========================
+  // WISHLIST HANDLER
+  // ==========================
+  const handleToggleWishlist = async (product) => {
+    if (!isAuthenticated) {
+      showNotification("Please login to add items to wishlist", "error");
+      return;
+    }
 
-  const addToCart = (productId) => {
-    const wasInCart = cart.includes(productId);
-    if (!wasInCart) {
-      setCart(prev => [...prev, productId]);
-      showNotification('Added to cart');
-    } else {
-      showNotification('Already in cart', 'info');
+    try {
+      const isCurrentlyInWishlist = isInWishlist(product._id);
+
+      await toggleWishlist({
+        productId: product._id,
+        priceWhenAdded: product.price,
+      }).unwrap();
+
+      // Optimistic update will be handled by the query refetch
+      if (isCurrentlyInWishlist) {
+        showNotification("Removed from wishlist");
+      } else {
+        showNotification("Added to wishlist ❤️");
+      }
+    } catch {
+      showNotification("Failed to update wishlist", "error");
     }
   };
 
-  const productList = products.data || [];
-  const totalPages = products.totalPages || 1;
+  // ==========================
+  // ADD TO CART – FIXED WITH INSTANT BADGE UPDATE
+  // ==========================
+  const handleAddToCart = async (product) => {
+    try {
+      if (isAuthenticated) {
+        await addToCart({
+          productId: product._id,
+          quantity: 1,
+        }).unwrap();
+      } else {
+        await addGuestCartItem({
+          sessionId,
+          product: product._id,
+          quantity: 1,
+          size: "M",
+          color: {
+            colorName: "Default",
+            colorHex: "#000000",
+          },
+          selectedImage: product.images?.[0] || product.image,
+        }).unwrap();
+      }
 
-  const categories = [
-    { name: "All Flowers" },
-    { name: "Rose" },
-    { name: "Sun Flowers" },
-    { name: "Blue Flowers" }
-  ];
+      // Optimistically update cart count for instant badge reflection in Navbar
+      dispatch(setCartCount(cartCount + 1));
 
+      showNotification("Added to cart");
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+      showNotification("Failed to add to cart", "error");
+    }
+  };
+
+  // ==========================
+  // RENDER
+  // ==========================
   return (
-    <div 
-      className="min-h-screen py-12 bg-linear-to-br from-[#FBF3EF] to-[#F5E8E0] relative overflow-hidden"
+    <div
+      className="min-h-screen py-12 relative font-slab"
       style={{
         backgroundImage: `url('./assets/ProdBgImg.png')`,
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       }}
     >
-      {/* PAGE HEADER */}
-      <div className="text-center mb-10 relative z-10">
-        <h1 className="text-5xl font-script font-bold text-[#8B3A4A] mb-2 relative">
-          Our Products
-        </h1>
-        <p className="text-sm text-gray-500 font-slab">
-          <span className="text-[#8B3A4A]">Home</span> / Products
-        </p>
-      </div>
+      <div className="absolute inset-0 bg-white/60"></div>
 
-      <div className="max-w-7xl mx-auto px-4 relative z-10">
-        {/* TOP FILTERS BAR */}
-        <div className="rounded-xl p-4 mb-8 border border-gray-200/50 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <input
-                type="search"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:border-[#C48B9F] focus:outline-none bg-white/50"
-              />
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
-            </div>
-            <div className="flex gap-2 flex-1 justify-end">
-              <select 
-                value={selectedCategory} 
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 rounded-full border border-gray-300 bg-white/50 focus:border-[#C48B9F] focus:outline-none"
-              >
-                {categories.map((cat) => (
-                  <option key={cat.name} value={cat.name}>{cat.name}</option>
-                ))}
-              </select>
-              <select className="px-3 py-2 rounded-full border border-gray-300 bg-white/50 focus:border-[#C48B9F] focus:outline-none">
-                <option>Sort by best selling</option>
-                <option>Price: Low to High</option>
-                <option>Price: High to Low</option>
-              </select>
-              <button className="px-4 py-2 bg-[#C48B9F] text-white rounded-full hover:bg-[#A77A8E] transition">
-                Filter
-              </button>
-            </div>
-          </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4">
+        {/* HEADER */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-script font-bold text-[#8B3A4A] mb-2">
+            Our Products
+          </h1>
+          <p className="text-sm text-gray-600">
+            <Link to="/" className="text-[#8B3A4A] hover:underline">
+              Home
+            </Link>{" "}
+            / Products
+          </p>
         </div>
 
-        {/* MAIN GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
-          {/* LEFT FILTER SIDEBAR */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Categories */}
-            <div className="p-6 rounded-2xl border border-gray-200/50 shadow-sm">
-              <h3 className="font-semibold text-[#8B3A4A] mb-4 text-lg">Categories</h3>
-              <ul className="space-y-3">
-                {categories.map((cat) => (
-                  <li 
-                    key={cat.name} 
-                    onClick={() => setSelectedCategory(cat.name)}
-                    className={`flex items-center space-x-3 cursor-pointer group ${selectedCategory === cat.name ? 'text-[#8B3A4A]' : ''}`}
-                  >
-                    <div className={`w-2 h-2 rounded-full transition ${selectedCategory === cat.name ? 'bg-[#C48B9F]' : 'bg-gray-300 group-hover:bg-[#C48B9F]'}`}></div>
-                    <span className={`text-sm ${selectedCategory === cat.name ? 'font-medium' : 'group-hover:text-[#8B3A4A]'} text-gray-600`}>{cat.name}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Price Range */}
-            <div className="backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-sm">
-              <h3 className="font-semibold text-[#8B3A4A] mb-4 text-lg">Price Range</h3>
-              <div className="space-y-2">
-                <input
-                  type="range"
-                  min="0"
-                  max="2000"
-                  defaultValue="399"
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  style={{
-                    background: 'linear-gradient(to right, #C48B9F 0%, #C48B9F 20%, #E5E7EB 20%, #E5E7EB 100%)'
-                  }}
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>₹0</span>
-                  <span>₹2000</span>
-                </div>
-                <div className="text-center mt-2">
-                  <span className="text-sm font-medium text-[#8B3A4A]">₹399</span>
-                </div>
-              </div>
-            </div>
+        {/* FILTER BAR */}
+        <div className="bg-white/90 p-4 rounded-xl mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="relative flex-1 min-w-0">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search products"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#8B3A4A]"
+            />
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <FaSearch />
+            </span>
           </div>
+          <div className="relative min-w-35 flex-1 max-w-xs">
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-3 pr-8 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#8B3A4A] appearance-none"
+            >
+              {categories.map((cat) => (
+                <option key={cat.name} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+              ▼
+            </span>
+          </div>
+          <div className="relative min-w-40 flex-1 max-w-xs">
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-3 pr-8 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#8B3A4A] appearance-none"
+            >
+              <option value="best-selling">Sort by best selling</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+            </select>
+            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+              ▼
+            </span>
+          </div>
+          <button
+            onClick={handleFilter}
+            className="px-6 py-2 bg-[#C48B9F] text-white rounded-full hover:bg-[#8B3A4A] transition flex shrink-0"
+          >
+            Filter
+          </button>
+        </div>
 
-          {/* PRODUCT GRID */}
-          <div className="lg:col-span-3">
-            {/* Loading State */}
-            {loading && (
-              <div className="col-span-3 flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C48B9F]"></div>
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <div className="col-span-3 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-                <p>Error loading products: {error}</p>
-              </div>
-            )}
-
-            {/* Products Grid */}
-            {!loading && !error && (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {productList.map((product) => (
+        {/* PRODUCT GRID */}
+        <div className="mb-8">
+          {loading ? (
+            <div className="min-h-screen flex items-center justify-center">
+              <FiLoader className="animate-spin text-[#c9a47c]" size={40} />
+            </div>
+          ) : paginatedProducts.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              No products found matching your criteria.
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedProducts.map((product) => {
+                  const originalPrice = product.originalPrice;
+                  const discount = originalPrice
+                    ? Math.round(
+                        ((originalPrice - product.price) / originalPrice) * 100
+                      )
+                    : 0;
+                  return (
                     <div
                       key={product._id}
-                      className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 hover:shadow-xl transition-shadow overflow-hidden group"
+                      className="group bg-white rounded-3xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-500 border border-gray-50 relative"
                     >
-                      <Link
-                        to={`/products/${product._id}`}
-                        className="block"
-                      >
-                        <div className="relative overflow-hidden">
+                      {/* Image Section - Wrapped in Link for navigation */}
+                      <Link to={`/products/${product._id}`} className="block">
+                        <div className="relative overflow-hidden bg-linear-to-br from-gray-50 to-gray-100">
                           <img
-                            src={product.image}
+                            src={product.images?.[0] || product.image}
                             alt={product.name}
-                            className="w-full h-60 object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                           />
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleWishlist(product._id);
-                            }}
-                            className="absolute top-2 right-2 text-amber-700 p-2 rounded-full text-4xl hover:text-amber-900 transition cursor-pointer"
-                            aria-label="Add to wishlist"
-                          >
-                            {isInWishlist(product._id) ? '♥' : '♡'}
-                          </button>
+
+                          {/* Discount Badge */}
+                          {discount > 0 && (
+                            <div className="absolute top-4 left-4 bg-linear-to-r from-red-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                              {discount}% OFF
+                            </div>
+                          )}
+
+                          {/* Gradient Overlay on Hover */}
+                          <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         </div>
-                        <div className="p-4 flex justify-between items-center">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-emerald-500 text-sm mb-1">
-                              {product.name}
-                            </h3>
-                            <div className="space-y-1">
-                              <p className="text-[#8B3A4A] font-semibold text-lg">
+                      </Link>
+
+                      {/* Wishlist Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleWishlist(product)}
+                        className="absolute top-2 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:scale-110 transition-all duration-300 z-10"
+                      >
+                        <span
+                          className={`text-xl transition-colors ${
+                            isInWishlist(product._id)
+                              ? "text-red-500"
+                              : "text-white"
+                          }`}
+                        >
+                          {isInWishlist(product._id) ? (
+                            <FaHeart />
+                          ) : (
+                            <FaRegHeart />
+                          )}
+                        </span>
+                      </button>
+
+                      {/* Content Section */}
+                      <div className="p-4">
+                        <Link to={`/products/${product._id}`} className="block">
+                          <h3 className="text-lg text-gray-800 line-clamp-2 min-h-14 leading-snug hover:text-[#8B3A4A] transition-colors">
+                            {product.name}
+                          </h3>
+                        </Link>
+
+                        {/* Price & CTA Section */}
+                        <div className="flex items-end justify-between gap-2">
+                          <div className="flex flex-col">
+                            <div className="flex flex-col items-start gap-2">
+                              <span className="text-xl text-[#8B3A4A]">
                                 ₹{product.price}/-
-                              </p>
+                              </span>
+                              {originalPrice && (
+                                <span className="text-sm text-gray-400 line-through">
+                                  ₹{originalPrice}/-
+                                </span>
+                              )}
                             </div>
                           </div>
+
                           <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              addToCart(product._id);
-                            }}
-                            className="ml-4 px-4 py-2 bg-[#C48B9F] text-white rounded-full hover:bg-[#A77A8E] transition"
+                            type="button"
+                            onClick={() => handleAddToCart(product)}
+                            className="flex shrink-0 px-5 py-2.5 bg-linear-to-r from-[#C48B9F] to-[#8B3A4A] text-white text-sm font-medium rounded-full hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-300"
                           >
                             Add to Cart
                           </button>
                         </div>
-                      </Link>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+
+              {/* PAGINATION */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-12 space-x-2">
+                  {Array.from(
+                    { length: Math.min(10, totalPages) },
+                    (_, i) => i + 1
+                  ).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                        currentPage === page
+                          ? "bg-[#8B3A4A] text-white shadow-md"
+                          : "bg-white/60 text-gray-700 hover:bg-gray-200 hover:shadow-md"
+                      }`}
+                    >
+                      {page}
+                    </button>
                   ))}
                 </div>
-
-                {productList.length === 0 && (
-                  <div className="col-span-3 text-center py-12">
-                    <p className="text-gray-500">No products found</p>
-                  </div>
-                )}
-
-                {/* PAGINATION */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center mt-8">
-                    <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-gray-200/50 shadow-sm">
-                      <nav className="flex space-x-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`px-3 py-1 rounded-full text-sm transition ${
-                              page === currentPage
-                                ? 'bg-[#C48B9F] text-white'
-                                : 'text-gray-600 hover:bg-gray-100'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        ))}
-                      </nav>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
-      {/* Toast Notification */}
       {notification && (
-        <Toast 
-          message={notification.message} 
-          type={notification.type} 
-          onClose={() => setNotification(null)} 
+        <Toast
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
         />
       )}
     </div>

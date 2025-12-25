@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -8,21 +8,79 @@ import {
   X,
   LogOut,
   ShoppingBag,
+  Heart,
 } from "lucide-react";
 import { FiUser } from "react-icons/fi";
+
 import AuthModal from "./AuthModal";
 import { logout } from "../Redux/authSlice";
+import { setCartCount, resetCartCount } from "../Redux/cartSlice";
+import {
+  setWishlistCount,
+  resetWishlist,
+} from "../Redux/wishlistSlice";
+
+// RTK Query
+import { useGetCartDetailsQuery } from "../Services/cartApi";
+import { useGetGuestCartDetailsQuery } from "../Services/guestCartApi";
+import { useGetWishlistCountQuery } from "../Services/wishlistApi";
+
+// Utils
+import { getGuestSessionId, clearGuestSession } from "../utils/session";
 
 export default function Navbar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const cartCount = useSelector((state) => state.cart.itemCount);
+  const wishlistCount = useSelector((state) => state.wishlist.itemCount);
 
-  /* 🔥 CART STATE */
-  const cartItems = useSelector((state) => state.cart.items);
-  const cartCount = cartItems?.length || 0;
+  /* =========================
+     CART (USER / GUEST)
+  ========================== */
+  const sessionId = getGuestSessionId();
 
+  const { data: userCart } = useGetCartDetailsQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  const { data: guestCart } = useGetGuestCartDetailsQuery(sessionId, {
+    skip: isAuthenticated,
+  });
+
+  /* =========================
+     WISHLIST COUNT
+  ========================== */
+  const { data: wishlistData } = useGetWishlistCountQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  /* =========================
+     SYNC CART BADGE
+  ========================== */
+  useEffect(() => {
+    if (isAuthenticated && userCart?.items) {
+      dispatch(setCartCount(userCart.items.length));
+    }
+
+    if (!isAuthenticated && guestCart?.items) {
+      dispatch(setCartCount(guestCart.items.length));
+    }
+  }, [isAuthenticated, userCart, guestCart, dispatch]);
+
+  /* =========================
+     SYNC WISHLIST BADGE
+  ========================== */
+  useEffect(() => {
+    if (wishlistData?.count !== undefined) {
+      dispatch(setWishlistCount(wishlistData.count));
+    }
+  }, [wishlistData, dispatch]);
+
+  /* =========================
+     UI STATE
+  ========================== */
   const [isOpen, setIsOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [profileDropdown, setProfileDropdown] = useState(false);
@@ -34,21 +92,17 @@ export default function Navbar() {
     { label: "Contact US", href: "/contact" },
   ];
 
-  const handleProfileClick = () => {
-    navigate("/profile");
-    setProfileDropdown(false);
-  };
-
-  const handleOrdersClick = () => {
-    navigate("/orders");
-    setProfileDropdown(false);
-  };
-
+  /* =========================
+     LOGOUT HANDLER
+  ========================== */
   const handleLogout = () => {
     dispatch(logout());
-    navigate("/");
+    dispatch(resetCartCount());
+    dispatch(resetWishlist());
+
+    clearGuestSession();
     setProfileDropdown(false);
-    window.location.reload();
+    navigate("/");
   };
 
   return (
@@ -67,7 +121,7 @@ export default function Navbar() {
 
             {/* DESKTOP NAV */}
             <div className="hidden md:flex items-center gap-8">
-              <div className="border border-amber-900 rounded-xl [corner-shape:scoop] px-8 py-2 flex gap-12 font-slab">
+              <div className="border border-amber-900 rounded-xl px-8 py-2 flex gap-12 font-slab">
                 {navItems.map((item) => (
                   <NavLink
                     key={item.label}
@@ -88,53 +142,55 @@ export default function Navbar() {
 
             {/* RIGHT ICONS */}
             <div className="flex items-center gap-6">
-              <button className="text-amber-900 hover:text-amber-700 transition">
-                <Search size={24} />
+              <Search size={24} className="text-amber-900" />
+
+              {/* WISHLIST */}
+              <button
+                onClick={() => navigate("/wishlist")}
+                className="relative text-amber-900"
+              >
+                <Heart size={24} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
+                    {wishlistCount}
+                  </span>
+                )}
               </button>
 
-              {/* 🛒 CART ICON */}
+              {/* CART */}
               <button
                 onClick={() => navigate("/cart")}
-                className="relative text-amber-900 hover:text-amber-700 transition"
+                className="relative text-amber-900"
               >
                 <ShoppingCart size={24} />
-
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
               </button>
 
-              {/* AUTH SECTION */}
+              {/* AUTH */}
               {isAuthenticated ? (
-                <div className="hidden md:flex relative">
+                <div className="relative hidden md:block z-50">
                   <button
                     onClick={() => setProfileDropdown(!profileDropdown)}
-                    className="flex items-center justify-center w-10 h-10 rounded-full bg-[#c9a47c] text-white hover:bg-[#b8926d]"
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-[#c9a47c] text-white"
                   >
                     <FiUser size={20} />
                   </button>
 
                   {profileDropdown && (
-                    <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border w-48 z-50">
+                    <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border w-48">
                       <button
-                        onClick={handleProfileClick}
-                        className="w-full px-4 py-3 text-left hover:bg-[#f6efe6] flex gap-2"
+                        onClick={() => navigate("/profile")}
+                        className="w-full px-4 py-3 text-left hover:bg-[#f6efe6]"
                       >
                         <FiUser size={16} /> My Profile
                       </button>
-
-                      <button
-                        onClick={handleOrdersClick}
-                        className="w-full px-4 py-3 text-left hover:bg-[#f6efe6] flex gap-2"
-                      >
-                        <ShoppingBag size={16} /> My Orders
-                      </button>
-
                       <button
                         onClick={handleLogout}
-                        className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 flex gap-2"
+                        className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50"
                       >
                         <LogOut size={16} /> Logout
                       </button>
@@ -144,7 +200,7 @@ export default function Navbar() {
               ) : (
                 <button
                   onClick={() => setAuthOpen(true)}
-                  className="hidden md:flex border border-amber-900 text-amber-900 px-4 py-2 rounded-lg hover:bg-amber-900 hover:text-white"
+                  className="hidden md:flex border border-amber-900 text-amber-900 px-4 py-2 rounded-lg"
                 >
                   Login
                 </button>
@@ -162,7 +218,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* AUTH MODAL */}
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </>
   );

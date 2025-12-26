@@ -93,10 +93,10 @@ export const wishlistApi = baseApi.injectEndpoints({
         url: `/wishlist/move-to-cart/${productId}`,
         method: "POST",
         body: {
-          product: productId,
           quantity,
           size,
-          color,
+          colorName: color?.colorName || "Default",
+          colorHex: color?.colorHex || "#000000",
           selectedImage,
         },
       }),

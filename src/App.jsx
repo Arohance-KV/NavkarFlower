@@ -12,6 +12,7 @@ import WishlistPage from "./Pages/WishlistPage";
 import AboutUsPage from "./Pages/AboutUsPage";
 import ContactUs from "./Pages/ContactUsPage";
 import ProfilePage from "./Pages/ProfilePage";
+import MyOrdersPage from "./Pages/MyOrdersPage";
 import NotFoundPage from "./Pages/NotFoundPage";
 
 /* Layout WITH Navbar & Footer */
@@ -29,6 +30,7 @@ const MainLayout = () => (
         <Route path="about" element={<AboutUsPage />} />
         <Route path="contact" element={<ContactUs />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="orders" element={<MyOrdersPage />} />
       </Routes>
     </main>
 

@@ -59,6 +59,34 @@ export const cartApi = baseApi.injectEndpoints({
       transformResponse: (res) => res.data,
       invalidatesTags: ["Cart"],
     }),
+
+    /* =========================
+       APPLY DISCOUNT / COUPON
+       POST /cart/apply-discount
+    ========================== */
+    applyDiscount: builder.mutation({
+      query: (payload) => ({
+        url: "/cart/apply-discount",
+        method: "POST",
+        body: payload, // { code, type }
+      }),
+      transformResponse: (res) => res.data,
+      invalidatesTags: ["Cart"],
+    }),
+
+    /* =========================
+       REMOVE DISCOUNT / COUPON
+       DELETE /cart/remove-discount
+    ========================== */
+    removeDiscount: builder.mutation({
+      query: (payload) => ({
+        url: "/cart/remove-discount",
+        method: "DELETE",
+        body: payload, // { type: "all" }
+      }),
+      transformResponse: (res) => res.data,
+      invalidatesTags: ["Cart"],
+    }),
   }),
 
   overrideExisting: false,
@@ -69,4 +97,6 @@ export const {
   useGetCartDetailsQuery,
   useUpdateCartItemMutation,
   useRemoveCartItemMutation,
+  useApplyDiscountMutation,
+  useRemoveDiscountMutation,
 } = cartApi;

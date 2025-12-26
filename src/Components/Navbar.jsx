@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -85,12 +85,36 @@ export default function Navbar() {
   const [authOpen, setAuthOpen] = useState(false);
   const [profileDropdown, setProfileDropdown] = useState(false);
 
+  const profileDropdownRef = useRef(null);
+
   const navItems = [
     { label: "Home", href: "/" },
     { label: "Products", href: "/product" },
     { label: "About us", href: "/about" },
     { label: "Contact US", href: "/contact" },
   ];
+
+  /* =========================
+     CLICK OUTSIDE TO CLOSE DROPDOWN
+  ========================== */
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        profileDropdownRef.current &&
+        !profileDropdownRef.current.contains(event.target)
+      ) {
+        setProfileDropdown(false);
+      }
+    };
+
+    if (profileDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [profileDropdown]);
 
   /* =========================
      LOGOUT HANDLER
@@ -172,7 +196,7 @@ export default function Navbar() {
 
               {/* AUTH */}
               {isAuthenticated ? (
-                <div className="relative hidden md:block z-50">
+                <div className="relative hidden md:block z-50" ref={profileDropdownRef}>
                   <button
                     onClick={() => setProfileDropdown(!profileDropdown)}
                     className="flex items-center justify-center w-10 h-10 rounded-full bg-[#c9a47c] text-white"
@@ -183,14 +207,26 @@ export default function Navbar() {
                   {profileDropdown && (
                     <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border w-48">
                       <button
-                        onClick={() => navigate("/profile")}
-                        className="w-full px-4 py-3 text-left hover:bg-[#f6efe6]"
+                        onClick={() => {
+                          navigate("/profile");
+                          setProfileDropdown(false);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-[#f6efe6] flex items-center gap-2"
                       >
                         <FiUser size={16} /> My Profile
                       </button>
                       <button
+                        onClick={() => {
+                          navigate("/orders");
+                          setProfileDropdown(false);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-[#f6efe6] flex items-center gap-2"
+                      >
+                        <ShoppingBag size={16} /> My Orders
+                      </button>
+                      <button
                         onClick={handleLogout}
-                        className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50"
+                        className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
                         <LogOut size={16} /> Logout
                       </button>

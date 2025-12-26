@@ -23,6 +23,11 @@ import { useGetSubCategoryByIdQuery } from "../Services/subCategoryApi";
 import { useAddToCartMutation } from "../Services/cartApi";
 import { useAddGuestCartItemMutation } from "../Services/guestCartApi";
 
+// RTK Query – Wishlist
+import {
+  useToggleWishlistMutation,
+  useGetWishlistQuery,
+} from "../Services/wishlistApi";
 
 // Utils
 import { getGuestSessionId } from "../utils/session";
@@ -62,6 +67,12 @@ const ProductDetailsPage = () => {
   const [addGuestCartItem] = useAddGuestCartItemMutation();
   const sessionId = getGuestSessionId();
 
+  // RTK QUERY – WISHLIST
+  const { data: wishlistData } = useGetWishlistQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+  const [toggleWishlist] = useToggleWishlistMutation();
+
 
   // LOCAL UI STATE
   const [mainImage, setMainImage] = useState(null);
@@ -97,6 +108,16 @@ const ProductDetailsPage = () => {
     }
   }, [selectedColorIndex, availableSizes]);
 
+  useEffect(() => {
+    // Check if product is in wishlist
+    if (wishlistData?.items && product?._id) {
+      const isInWishlist = wishlistData.items.some(
+        (item) => item.product?._id === product._id
+      );
+      setIsWishlisted(isInWishlist);
+    }
+  }, [wishlistData, product]);
+
   // HELPERS
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });
@@ -111,7 +132,53 @@ const ProductDetailsPage = () => {
     setSelectedSize(size);
   };
 
- 
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) {
+      showNotification("Please login to add to wishlist", "error");
+      return;
+    }
+
+    try {
+      await toggleWishlist({
+        productId: product._id,
+        priceWhenAdded: product.price,
+      }).unwrap();
+
+      setIsWishlisted(!isWishlisted);
+      showNotification(
+        isWishlisted ? "Removed from wishlist" : "Added to wishlist"
+      );
+    } catch (error) {
+      showNotification("Failed to update wishlist", "error");
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: product.name,
+      text: `Check out ${product.name} on our website!`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        // Use native share if available
+        await navigator.share(shareData);
+        showNotification("Shared successfully!");
+      } else {
+        // Fallback to copy link
+        await navigator.clipboard.writeText(window.location.href);
+        showNotification("Link copied to clipboard!");
+      }
+    } catch (error) {
+      // User cancelled share or error occurred
+      if (error.name !== "AbortError") {
+        showNotification("Failed to share", "error");
+      }
+    }
+  };
+
+
   // LOADING & ERROR
   if (isLoading) {
     return (
@@ -258,15 +325,20 @@ const ProductDetailsPage = () => {
                 {/* Floating Action Buttons */}
                 <div className="absolute top-6 right-6 flex gap-3 z-10">
                   <button
-                    onClick={() => setIsWishlisted(!isWishlisted)}
+                    onClick={handleWishlistToggle}
                     className="bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300"
+                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                   >
                     <Heart
                       size={20}
                       className={isWishlisted ? "fill-red-500 text-red-500" : "text-gray-700"}
                     />
                   </button>
-                  <button className="bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300">
+                  <button
+                    onClick={handleShare}
+                    className="bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300"
+                    title="Share this product"
+                  >
                     <Share2 size={20} className="text-gray-700" />
                   </button>
                 </div>

@@ -13,6 +13,9 @@ import {
 
 import { useLoginMutation } from "../Services/authApi";
 import { setAuth } from "../Redux/authSlice";
+import { setCartCount } from "../Redux/cartSlice";
+import { useMergeGuestCartMutation } from "../Services/guestCartApi";
+import { getGuestSessionId } from "../utils/session";
 
 const Login = ({ switchToSignup, onClose }) => {
   const dispatch = useDispatch();
@@ -22,6 +25,7 @@ const Login = ({ switchToSignup, onClose }) => {
   // RTK QUERY
   // ==========================
   const [login, { isLoading, error }] = useLoginMutation();
+  const [mergeGuestCart] = useMergeGuestCartMutation();
 
   // ==========================
   // LOCAL STATE (UNCHANGED)
@@ -79,6 +83,24 @@ const Login = ({ switchToSignup, onClose }) => {
 
       // Update auth UI state
       dispatch(setAuth(data));
+
+      // Merge guest cart with user cart
+      try {
+        const sessionId = getGuestSessionId();
+        if (sessionId) {
+          const mergeResult = await mergeGuestCart({ sessionId }).unwrap();
+
+          // Update cart count if merge was successful
+          if (mergeResult?.itemCount !== undefined) {
+            dispatch(setCartCount(mergeResult.itemCount));
+          }
+
+          console.log("Guest cart merged successfully:", mergeResult);
+        }
+      } catch (mergeError) {
+        // Don't fail login if cart merge fails
+        console.warn("Failed to merge guest cart:", mergeError);
+      }
 
       setSuccess(true);
       setForm({ email: "", password: "" });

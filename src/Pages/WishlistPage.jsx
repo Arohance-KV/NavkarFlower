@@ -1,9 +1,14 @@
 // src/Pages/WishlistPage.jsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import Toast from "../Components/Toast";
 import { Heart, Trash2, ShoppingCart } from "lucide-react";
+
+// ==========================
+// Redux Actions
+// ==========================
+import { setCartCount } from "../Redux/cartSlice";
 
 // ==========================
 // RTK Query – Wishlist
@@ -117,9 +122,10 @@ const WishlistCard = ({ item, onRemove, onMoveToCart }) => {
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => onMoveToCart(product)}
-            className="px-6 py-2 bg-linear-to-r from-[#B89B72] to-[#A6845C] text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-200 text-sm whitespace-nowrap"
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#C48B9F] to-[#8B3A4A] text-white font-semibold rounded-full hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 text-sm whitespace-nowrap"
           >
-            Add to Cart
+            <ShoppingCart className="w-4 h-4" />
+            Move to Cart
           </button>
 
           <button
@@ -127,7 +133,7 @@ const WishlistCard = ({ item, onRemove, onMoveToCart }) => {
               e.preventDefault();
               onRemove(product._id);
             }}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+            className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200"
             title="Remove from wishlist"
           >
             <Trash2 className="w-5 h-5" />
@@ -139,7 +145,9 @@ const WishlistCard = ({ item, onRemove, onMoveToCart }) => {
 };
 
 const WishlistPage = () => {
+  const dispatch = useDispatch();
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const cartCount = useSelector((state) => state.cart.itemCount);
   const sessionId = getGuestSessionId();
 
   const [notification, setNotification] = useState(null);
@@ -184,34 +192,71 @@ const WishlistPage = () => {
 
   const handleMoveToCart = async (product) => {
     try {
-      if (isAuthenticated) {
-        await moveWishlistItemToCart({
-          productId: product._id,
-          quantity: 1,
-          size: product.colors?.[0]?.sizeStock?.[0]?.size || "M",
-          color: {
-            colorName: product.colors?.[0]?.colorName || "Default",
-            colorHex: product.colors?.[0]?.colorHex || "#000000",
-          },
-          selectedImage: product.image || product.images?.[0],
-        }).unwrap();
-      } else {
-        await addGuestCartItem({
-          sessionId,
-          product: product._id,
-          quantity: 1,
-          size: product.colors?.[0]?.sizeStock?.[0]?.size || "M",
-          color: {
-            colorName: product.colors?.[0]?.colorName || "Default",
-            colorHex: product.colors?.[0]?.colorHex || "#000000",
-          },
-          selectedImage: product.image || product.images?.[0],
-        }).unwrap();
+      // Debug: Log product structure
+      console.log("Moving to cart - Product:", product);
+
+      // Prepare cart item data - matching ProductPage structure
+      const colorData = {
+        colorName: product.colors?.[0]?.colorName || "Default",
+        colorHex: product.colors?.[0]?.colorHex || "#000000",
+      };
+
+      const selectedImage =
+        product.colors?.[0]?.images?.[0] ||
+        product.images?.[0] ||
+        product.image ||
+        "https://via.placeholder.com/300";
+
+      // Validate required fields
+      if (!colorData.colorName || !colorData.colorHex || !selectedImage) {
+        showToast("Missing product details. Please try again.", "error");
+        return;
       }
 
-      showToast("Moved to cart 🛒");
-    } catch {
-      showToast("Failed to move item", "error");
+      const payload = {
+        productId: product._id,
+        quantity: 1,
+        size: "M",
+        color: colorData,
+        selectedImage: selectedImage,
+      };
+
+      console.log("Cart payload:", payload);
+      console.log("Color will be sent as:", {
+        colorName: colorData.colorName,
+        colorHex: colorData.colorHex,
+      });
+
+      if (isAuthenticated) {
+        // For authenticated users: moveWishlistItemToCart adds to cart AND removes from wishlist
+        await moveWishlistItemToCart(payload).unwrap();
+
+        // Update cart count
+        dispatch(setCartCount(cartCount + 1));
+
+        showToast("Moved to cart! Item removed from wishlist 🛒");
+      } else {
+        // Guest users shouldn't be able to access wishlist, but handle just in case
+        await addGuestCartItem({
+          sessionId,
+          payload: {
+            product: product._id,
+            quantity: 1,
+            size: "M",
+            color: colorData,
+            selectedImage: selectedImage,
+          }
+        }).unwrap();
+
+        // Update cart count
+        dispatch(setCartCount(cartCount + 1));
+
+        showToast("Added to cart 🛒");
+      }
+    } catch (error) {
+      console.error("Failed to move to cart:", error);
+      const errorMessage = error?.data?.message || "Failed to move item to cart";
+      showToast(errorMessage, "error");
     }
   };
 

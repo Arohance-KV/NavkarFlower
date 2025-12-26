@@ -8,6 +8,7 @@ import HomePage from "./Pages/HomePage";
 import ProductPage from "./Pages/ProductPage";
 import ProductDetails from "./Pages/ProductDetailPage";
 import CartPage from "./Pages/CartPage";
+import WishlistPage from "./Pages/WishlistPage";
 import AboutUsPage from "./Pages/AboutUsPage";
 import ContactUs from "./Pages/ContactUsPage";
 import ProfilePage from "./Pages/ProfilePage";
@@ -24,6 +25,7 @@ const MainLayout = () => (
         <Route path="/product" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetails />} />
         <Route path="cart" element={<CartPage />} />
+        <Route path="wishlist" element={<WishlistPage />} />
         <Route path="about" element={<AboutUsPage />} />
         <Route path="contact" element={<ContactUs />} />
         <Route path="profile" element={<ProfilePage />} />

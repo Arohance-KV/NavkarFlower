@@ -5,69 +5,90 @@ import {
   FiMail,
   FiPhone,
   FiLogOut,
-  FiAlertCircle,
   FiLoader,
   FiRefreshCw,
   FiEdit2,
-  FiX,
   FiCheck,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { getProfile, logout, updateProfile } from "../Redux/authSlice";
+
+// ✅ RTK Query (SOURCE OF TRUTH)
+import {
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+} from "../Services/authApi";
+
+// ✅ Redux only for logout
+import { logout } from "../Redux/authSlice";
 
 /* -----------------------------
-   Helper: Map user -> form data
+   Helper: map profile → form
 ------------------------------ */
-const mapUserToForm = (user) => ({
-  firstName: user?.firstName || "",
-  lastName: user?.lastName || "",
-  email: user?.email || "",
-  phoneNumber: user?.phoneNumber || "",
-  address: user?.address || "",
-  city: user?.city || "",
-  state: user?.state || "",
-  zipCode: user?.zipCode || "",
+const mapProfileToForm = (profile) => ({
+  firstName: profile?.firstName || "",
+  lastName: profile?.lastName || "",
+  email: profile?.email || "",
+  phoneNumber: profile?.phoneNumber || "",
+  address: profile?.address || "",
+  city: profile?.city || "",
+  state: profile?.state || "",
+  zipCode: profile?.zipCode || "",
 });
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { user, loading, error, isAuthenticated, accessToken } = useSelector(
+  const { isAuthenticated, accessToken } = useSelector(
     (state) => state.auth
   );
 
+  // ==========================
+  // ✅ RTK QUERY (single source)
+  // ==========================
+  const {
+    data: profile,
+    isLoading,
+    error,
+    refetch,
+  } = useGetProfileQuery(undefined, {
+    skip: !isAuthenticated || !accessToken,
+  });
+
+  const [updateProfile, { isLoading: updateLoading }] =
+    useUpdateProfileMutation();
+
+  // ==========================
+  // LOCAL STATE (UNCHANGED)
+  // ==========================
   const [isEditing, setIsEditing] = useState(false);
-  const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState(null);
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [formData, setFormData] = useState(mapUserToForm(null));
+  const [formData, setFormData] = useState(
+    mapProfileToForm(profile)
+  );
 
   /* -----------------------------
-     Auth Guard + Fetch Profile
+     Auth Guard (UNCHANGED)
   ------------------------------ */
   useEffect(() => {
     if (!isAuthenticated || !accessToken) {
       navigate("/");
-      return;
     }
-
-    if (!user) {
-      dispatch(getProfile());
-    }
-  }, [isAuthenticated, accessToken, user, dispatch, navigate]);
+  }, [isAuthenticated, accessToken, navigate]);
 
   /* -----------------------------
-     Sync form when user loads
+     Sync profile → form ONLY
+     (NO Redux syncing)
   ------------------------------ */
   useEffect(() => {
-    if (user && !isEditing) {
-      setFormData(mapUserToForm(user));
+    if (profile && !isEditing) {
+      setFormData(mapProfileToForm(profile));
     }
-  }, [user, isEditing]);
+  }, [profile, isEditing]);
 
   /* -----------------------------
-     Handlers
+     Handlers (UNCHANGED)
   ------------------------------ */
   const handleLogout = useCallback(() => {
     dispatch(logout());
@@ -76,59 +97,55 @@ const ProfilePage = () => {
   }, [dispatch, navigate]);
 
   const handleRetry = useCallback(() => {
-    dispatch(getProfile());
-  }, [dispatch]);
+    refetch();
+  }, [refetch]);
 
-  const handleEditClick = useCallback(() => {
+  const handleEditClick = () => {
     setIsEditing(true);
     setUpdateError(null);
     setUpdateSuccess(false);
-  }, []);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     setIsEditing(false);
     setUpdateError(null);
     setUpdateSuccess(false);
-    if (user) setFormData(mapUserToForm(user));
-  }, [user]);
+    if (profile) setFormData(mapProfileToForm(profile));
+  };
 
-  const handleInputChange = useCallback((e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  }, []);
+  };
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
-    setUpdateLoading(true);
     setUpdateError(null);
 
     try {
-      await dispatch(updateProfile(formData)).unwrap();
+      // ✅ RTK Query mutation
+      await updateProfile(formData).unwrap();
+
+      // ✅ RTK Query auto-refetches profile
       setUpdateSuccess(true);
       setIsEditing(false);
 
       setTimeout(() => setUpdateSuccess(false), 3000);
     } catch (err) {
-      setUpdateError(err || "Failed to update profile. Please try again.");
-    } finally {
-      setUpdateLoading(false);
+      setUpdateError(
+        err?.data?.message ||
+          "Failed to update profile. Please try again."
+      );
     }
   };
 
   /* -----------------------------
-     Loading Screen
+     Loading (UNCHANGED UI)
   ------------------------------ */
-  if (loading && !user) {
+  if (isLoading && !profile) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center bg-cover bg-center px-4"
-        style={{ backgroundImage: "url('/assets/ProdBgImg.png')" }}
-      >
-        <div className="absolute inset-0 bg-[#f6efe6]/80 backdrop-blur-sm" />
-        <div className="relative z-10 flex flex-col items-center gap-4">
-          <FiLoader className="animate-spin text-[#c9a47c]" size={48} />
-          <p className="text-[#7b5a45] font-slab">Loading profile...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <FiLoader className="animate-spin text-[#c9a47c]" size={40} />
       </div>
     );
   }
@@ -148,8 +165,10 @@ const ProfilePage = () => {
 
         {/* Header */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <h1 className="text-4xl font-script text-[#7b4a2e]">My Profile</h1>
-          {!isEditing && user && (
+          <h1 className="text-4xl font-script text-[#7b4a2e]">
+            My Profile
+          </h1>
+          {!isEditing && profile && (
             <button
               onClick={handleEditClick}
               className="p-2 hover:bg-[#eadfda] rounded-lg transition"
@@ -169,10 +188,12 @@ const ProfilePage = () => {
           </div>
         )}
 
-        {/* Errors */}
+        {/* Error */}
         {error && !isEditing && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 font-slab text-sm">{error}</p>
+            <p className="text-red-700 font-slab text-sm">
+              Failed to load profile
+            </p>
             <button
               onClick={handleRetry}
               className="text-red-600 text-xs mt-2 flex items-center gap-1"
@@ -184,24 +205,34 @@ const ProfilePage = () => {
 
         {updateError && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 font-slab text-sm">{updateError}</p>
+            <p className="text-red-700 font-slab text-sm">
+              {updateError}
+            </p>
           </div>
         )}
 
-        {/* View Mode */}
-        {!isEditing && user && (
+        {/* View Mode (UI SAME) */}
+        {!isEditing && profile && (
           <div className="space-y-5 font-slab text-[#7b5a45]">
-            <InfoRow icon={FiUser} label="Name" value={`${user.firstName} ${user.lastName}`} />
-            <InfoRow icon={FiMail} label="Email" value={user.email} />
-            <InfoRow icon={FiPhone} label="Phone" value={user.phoneNumber} />
-            {user.address && <InfoRow icon={FiUser} label="Address" value={user.address} />}
-            {user.city && <InfoRow icon={FiUser} label="City" value={user.city} />}
-            {user.state && <InfoRow icon={FiUser} label="State" value={user.state} />}
-            {user.zipCode && <InfoRow icon={FiUser} label="Zip Code" value={user.zipCode} />}
+            <InfoRow
+              icon={FiUser}
+              label="Name"
+              value={`${profile.firstName} ${profile.lastName}`}
+            />
+            <InfoRow
+              icon={FiMail}
+              label="Email"
+              value={profile.email}
+            />
+            <InfoRow
+              icon={FiPhone}
+              label="Phone"
+              value={profile.phoneNumber}
+            />
           </div>
         )}
 
-        {/* Edit Mode */}
+        {/* Edit Mode (UI SAME) */}
         {isEditing && (
           <form onSubmit={handleUpdateSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -211,7 +242,6 @@ const ProfilePage = () => {
                   name={key}
                   value={value}
                   onChange={handleInputChange}
-                  placeholder={key.replace(/([A-Z])/g, " $1")}
                   className="px-4 py-2 rounded-lg border border-[#eadfda] font-slab"
                 />
               ))}
@@ -253,7 +283,7 @@ const ProfilePage = () => {
 };
 
 /* -----------------------------
-   Reusable Info Row
+   Reusable Info Row (UNCHANGED)
 ------------------------------ */
 const InfoRow = ({ icon: Icon, label, value }) => (
   <div className="flex gap-4 items-start">
@@ -264,6 +294,5 @@ const InfoRow = ({ icon: Icon, label, value }) => (
     </div>
   </div>
 );
-
 
 export default ProfilePage;

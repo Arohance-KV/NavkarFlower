@@ -1,6 +1,6 @@
 // src/Pages/CartPage.jsx
 import { useSelector, useDispatch } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { FaPlus, FaMinus, FaTrash, FaShoppingBag, FaTag, FaTimes } from "react-icons/fa";
 import { FiLoader } from "react-icons/fi";
@@ -37,6 +37,7 @@ import { getGuestSessionId } from "../utils/session";
 
 const CartPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { isAuthenticated } = useSelector((state) => state.auth);
   const sessionId = getGuestSessionId();
 
@@ -204,6 +205,30 @@ const CartPage = () => {
     } catch (error) {
       showNotification("Failed to remove coupon", "error");
     }
+  };
+
+  // ==========================
+  // PROCEED TO CHECKOUT
+  // ==========================
+  const handleProceedToCheckout = () => {
+    if (!isAuthenticated) {
+      showNotification("Please login to continue", "error");
+      return;
+    }
+
+    if (items.length === 0) {
+      showNotification("Your cart is empty", "error");
+      return;
+    }
+
+    // Navigate to checkout with cart data
+    navigate("/checkout", {
+      state: {
+        fromCart: true,
+        items: items,
+        totals: totals,
+      },
+    });
   };
 
   // ==========================
@@ -545,6 +570,7 @@ const CartPage = () => {
 
               <button
                 type="button"
+                onClick={handleProceedToCheckout}
                 className="w-full py-3 bg-gradient-to-r from-[#C48B9F] to-[#8B3A4A] text-white font-medium rounded-full hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 mb-3"
               >
                 Proceed to Checkout

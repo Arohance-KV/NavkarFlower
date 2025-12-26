@@ -1,5 +1,5 @@
 // src/Pages/ProductDetailPage.jsx
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import Toast from "../Components/Toast";
@@ -34,8 +34,9 @@ import { getGuestSessionId } from "../utils/session";
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
 
- 
+
   // AUTH
   const { isAuthenticated } = useSelector((state) => state.auth);
 
@@ -176,6 +177,29 @@ const ProductDetailsPage = () => {
         showNotification("Failed to share", "error");
       }
     }
+  };
+
+  const handleBuyNow = () => {
+    if (!selectedSize) {
+      showNotification("Please select a size", "error");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      showNotification("Please login to continue", "error");
+      return;
+    }
+
+    // Navigate to checkout with product data
+    navigate("/checkout", {
+      state: {
+        product,
+        selectedSize,
+        selectedColor,
+        selectedImage: mainImage,
+        quantity: 1,
+      },
+    });
   };
 
 
@@ -520,7 +544,10 @@ const ProductDetailsPage = () => {
               >
                 Add To Cart
               </button>
-              <button className="flex-1 border-2 border-[#8B3A4A] text-[#8B3A4A] py-4 rounded-xl font-bold text-lg hover:bg-[#8B3A4A] hover:text-white hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300">
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 border-2 border-[#8B3A4A] text-[#8B3A4A] py-4 rounded-xl font-bold text-lg hover:bg-[#8B3A4A] hover:text-white hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
+              >
                 Buy Now
               </button>
             </div>

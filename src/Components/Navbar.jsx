@@ -254,6 +254,80 @@ export default function Navbar() {
         </div>
       </nav>
 
+      {/* MOBILE MENU DROPDOWN */}
+      {isOpen && (
+        <div className="md:hidden bg-[#eae5d7] border-t border-amber-900/20">
+          <div className="px-4 py-4 space-y-2">
+            {/* Navigation Links */}
+            {navItems.map((item) => (
+              <NavLink
+                key={item.label}
+                to={item.href}
+                onClick={() => setIsOpen(false)}
+                className={({ isActive }) =>
+                  `block px-4 py-3 rounded-lg font-slab transition-colors ${
+                    isActive
+                      ? "bg-amber-900 text-white font-semibold"
+                      : "text-gray-700 hover:bg-amber-900/10"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+
+            {/* Divider */}
+            <div className="border-t border-amber-900/20 my-2"></div>
+
+            {/* Profile Section */}
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    navigate("/profile");
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-amber-900/10 transition-colors"
+                >
+                  <FiUser size={18} />
+                  <span className="font-slab">My Profile</span>
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/orders");
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-amber-900/10 transition-colors"
+                >
+                  <ShoppingBag size={18} />
+                  <span className="font-slab">My Orders</span>
+                </button>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span className="font-slab">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setAuthOpen(true);
+                  setIsOpen(false);
+                }}
+                className="w-full px-4 py-3 bg-amber-900 text-white rounded-lg font-slab hover:bg-amber-800 transition-colors"
+              >
+                Login
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </>
   );

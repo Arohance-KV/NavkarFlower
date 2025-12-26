@@ -13,6 +13,8 @@ import AboutUsPage from "./Pages/AboutUsPage";
 import ContactUs from "./Pages/ContactUsPage";
 import ProfilePage from "./Pages/ProfilePage";
 import MyOrdersPage from "./Pages/MyOrdersPage";
+import CheckoutPage from "./Pages/CheckoutPage";
+import OrderConfirmationPage from "./Pages/OrderConfirmationPage";
 import NotFoundPage from "./Pages/NotFoundPage";
 
 /* Layout WITH Navbar & Footer */
@@ -31,6 +33,8 @@ const MainLayout = () => (
         <Route path="contact" element={<ContactUs />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="orders" element={<MyOrdersPage />} />
+        <Route path="checkout" element={<CheckoutPage />} />
+        <Route path="order-confirmation" element={<OrderConfirmationPage />} />
       </Routes>
     </main>
 

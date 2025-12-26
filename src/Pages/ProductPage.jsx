@@ -33,11 +33,13 @@ import {
   useAddToCartMutation,
   useGetCartDetailsQuery,
   useUpdateCartItemMutation,
+  useRemoveCartItemMutation,
 } from "../Services/cartApi";
 import {
   useAddGuestCartItemMutation,
   useGetGuestCartDetailsQuery,
   useUpdateGuestCartItemMutation,
+  useRemoveGuestCartItemMutation,
 } from "../Services/guestCartApi";
 
 // ==========================
@@ -178,6 +180,8 @@ const ProductPage = () => {
   const [addGuestCartItem] = useAddGuestCartItemMutation();
   const [updateCartItem] = useUpdateCartItemMutation();
   const [updateGuestCartItem] = useUpdateGuestCartItemMutation();
+  const [removeCartItem] = useRemoveCartItemMutation();
+  const [removeGuestCartItem] = useRemoveGuestCartItemMutation();
   const sessionId = getGuestSessionId();
 
   // Fetch cart details based on authentication
@@ -353,11 +357,21 @@ const ProductPage = () => {
     try {
       const newQuantity = cartItem.quantity - 1;
 
+      // If quantity reaches 0, remove item from cart
       if (newQuantity < 1) {
-        showNotification("Quantity cannot be less than 1", "error");
+        if (isAuthenticated) {
+          await removeCartItem(cartItem._id).unwrap();
+        } else {
+          await removeGuestCartItem({ sessionId, itemId: cartItem._id }).unwrap();
+        }
+
+        // Update cart count
+        dispatch(setCartCount(cartCount - 1));
+        showNotification("Item removed from cart", "info");
         return;
       }
 
+      // Otherwise, just update the quantity
       if (isAuthenticated) {
         await updateCartItem({
           itemId: cartItem._id,

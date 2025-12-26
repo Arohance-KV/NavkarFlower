@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Navbar from "./Components/Navbar";
 import Footer from "./Components/Footer";
+import ScrollToTop from "./Components/ScrollToTop";
 
 import HomePage from "./Pages/HomePage";
 import ProductPage from "./Pages/ProductPage";
@@ -35,6 +36,7 @@ const MainLayout = () => (
         <Route path="orders" element={<MyOrdersPage />} />
         <Route path="checkout" element={<CheckoutPage />} />
         <Route path="order-confirmation" element={<OrderConfirmationPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </main>
 
@@ -45,12 +47,10 @@ const MainLayout = () => (
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
-        {/* ALL valid pages */}
+        {/* ALL pages with Navbar & Footer (including 404) */}
         <Route path="/*" element={<MainLayout />} />
-
-        {/* 404 page (NO Navbar & Footer) */}
-        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>
   );

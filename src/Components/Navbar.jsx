@@ -131,7 +131,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="w-full bg-[#eae5d7] shadow-md">
+      <nav className="w-full bg-[#eae5d7] shadow-md sticky top-0 z-50">
         <div className="w-full px-4 md:px-8">
           <div className="flex items-center justify-between h-20">
             {/* LOGO */}

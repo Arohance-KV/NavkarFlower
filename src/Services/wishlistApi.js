@@ -85,19 +85,18 @@ export const wishlistApi = baseApi.injectEndpoints({
     moveWishlistItemToCart: builder.mutation({
       query: ({
         productId,
-        quantity,
+        quantity = 1,
         size,
-        colorName,
-        colorHex,
+        color,
         selectedImage,
       }) => ({
         url: `/wishlist/move-to-cart/${productId}`,
         method: "POST",
         body: {
+          product: productId,
           quantity,
           size,
-          colorName,
-          colorHex,
+          color,
           selectedImage,
         },
       }),

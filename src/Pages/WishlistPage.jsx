@@ -188,9 +188,11 @@ const WishlistPage = () => {
         await moveWishlistItemToCart({
           productId: product._id,
           quantity: 1,
-          size: null,
-          colorName: null,
-          colorHex: null,
+          size: product.colors?.[0]?.sizeStock?.[0]?.size || "M",
+          color: {
+            colorName: product.colors?.[0]?.colorName || "Default",
+            colorHex: product.colors?.[0]?.colorHex || "#000000",
+          },
           selectedImage: product.image || product.images?.[0],
         }).unwrap();
       } else {
@@ -198,8 +200,11 @@ const WishlistPage = () => {
           sessionId,
           product: product._id,
           quantity: 1,
-          size: null,
-          color: null,
+          size: product.colors?.[0]?.sizeStock?.[0]?.size || "M",
+          color: {
+            colorName: product.colors?.[0]?.colorName || "Default",
+            colorHex: product.colors?.[0]?.colorHex || "#000000",
+          },
           selectedImage: product.image || product.images?.[0],
         }).unwrap();
       }

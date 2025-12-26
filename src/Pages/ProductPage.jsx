@@ -198,11 +198,18 @@ const ProductPage = () => {
   // ADD TO CART – FIXED WITH INSTANT BADGE UPDATE
   // ==========================
   const handleAddToCart = async (product) => {
+    console.log("Adding to cart:", product);
     try {
       if (isAuthenticated) {
         await addToCart({
           productId: product._id,
           quantity: 1,
+          size: "M",
+          color: {
+            colorName: product.colors?.[0]?.colorName || "Default",
+            colorHex: product.colors?.[0]?.colorHex || "#000000",
+          },
+          selectedImage: product.colors[0].images[0]|| product.image,
         }).unwrap();
       } else {
         await addGuestCartItem({

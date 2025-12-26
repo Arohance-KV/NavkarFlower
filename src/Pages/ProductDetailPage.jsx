@@ -172,6 +172,12 @@ const ProductDetailsPage = () => {
         await addToCart({
           productId: product._id,
           quantity: 1,
+          size: selectedSize,
+          color: {
+            colorName: selectedColor?.colorName || "Default",
+            colorHex: selectedColor?.colorHex || "#000000",
+          },
+          selectedImage: mainImage,
         }).unwrap();
       } else {
         await addGuestCartItem({

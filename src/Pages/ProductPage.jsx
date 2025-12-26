@@ -321,7 +321,7 @@ const ProductPage = () => {
         {/* PRODUCT GRID */}
         <div className="mb-8">
           {loading ? (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-top justify-center">
               <FiLoader className="animate-spin text-[#c9a47c]" size={40} />
             </div>
           ) : paginatedProducts.length === 0 ? (
